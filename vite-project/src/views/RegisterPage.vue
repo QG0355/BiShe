@@ -85,15 +85,23 @@ async function handleRegister() {
     }, 2000)
 
   } catch (err) {
-    // 6. 注册失败
-    loading.value = false
-    if (err.response && err.response.data.username) {
-      error.value = '注册失败：工号（用户名）已存在！'
+loading.value = false
+    console.log("详细错误信息:", err.response?.data) // <--- 加这一行！看控制台！
+
+    if (err.response && err.response.data) {
+        // 把后端返回的具体错误显示出来
+        const errorData = err.response.data
+        let errorMsg = ""
+        
+        // 遍历所有错误字段
+        for (const key in errorData) {
+            errorMsg += `${key}: ${errorData[key]} `
+        }
+        
+        error.value = errorMsg || '注册失败，请检查输入。'
     } else {
-      error.value = '注册失败，请检查网络或联系管理员。'
+        error.value = '注册失败，请检查网络或联系管理员。'
     }
-    console.error(err)
-  }
 }
 </script>
 
