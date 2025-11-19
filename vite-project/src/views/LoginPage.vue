@@ -5,7 +5,7 @@
         <div class="logo-icon">
           <i class="fas fa-tools"></i>
         </div>
-        <h2>IT 运维报修平台</h2>
+        <h2>校园报修服务平台</h2>
         <p>Enterprise IT Service Desk</p>
       </div>
 

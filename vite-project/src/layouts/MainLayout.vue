@@ -3,7 +3,7 @@
     <nav class="navbar">
       <div class="nav-brand">
         <i class="fas fa-tools"></i>
-        <span>IT 报修平台</span>
+        <span>校园报修服务平台</span>
       </div>
       
       <div class="nav-menu">
