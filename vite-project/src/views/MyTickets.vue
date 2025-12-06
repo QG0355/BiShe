@@ -13,16 +13,19 @@
 
     <div v-else class="ticket-list">
       <div v-for="ticket in ticketStore.tickets" :key="ticket.id" class="ticket-card">
+        
         <div class="card-header">
           <span class="title">{{ ticket.title }}</span>
           <span :class="['status-tag', getStatusClass(ticket.status)]">
             {{ getStatusName(ticket.status) }}
           </span>
         </div>
+
         <div class="card-body">
           <p><strong>位置：</strong>{{ ticket.location }}</p>
-          <p><strong>描述：</strong>{{ ticket.description }}</p>
-          <p class="time">{{ formatDate(ticket.submitTime) }}</p>
+          <p><strong>类型：</strong>{{ ticket.category }}</p>
+          <p><strong>描述：</strong>{{ ticket.description || '无' }}</p>
+          <p class="time">提交时间：{{ formatDate(ticket.submitTime) }}</p>
           
           <div v-if="ticket.evaluation" class="eval-box">
             <strong>我的评价：</strong> {{ ticket.evaluation }} ({{ ticket.rating }}星)
@@ -33,11 +36,11 @@
           <button v-if="ticket.status === 'pending_dispatch'" 
                   @click="deleteTicket(ticket.id)" 
                   class="btn-delete">
-            撤销
+            <i class="fas fa-trash"></i> 撤销
           </button>
 
-          <div v-if="ticket.status === 'finished'" class="eval-action">
-             <input v-model="evalInputs[ticket.id]" placeholder="维修满意吗？" class="eval-input">
+          <div v-if="ticket.status === 'finished'" class="eval-section">
+             <input v-model="evalInputs[ticket.id]" placeholder="维修满意吗？请输入评价" class="eval-input">
              <button @click="submitEval(ticket.id)" class="btn-primary small">提交评价</button>
           </div>
         </div>
@@ -54,12 +57,13 @@ import { useAuthStore } from '@/stores/auth'
 
 const ticketStore = useTicketStore()
 const auth = useAuthStore()
-const evalInputs = ref({}) // 存储评价内容
+const evalInputs = ref({}) // 临时存储评价内容
 
 onMounted(() => {
   ticketStore.fetchTickets()
 })
 
+// 撤销
 async function deleteTicket(id) {
   if(!confirm("确定要撤销此报修单吗？")) return;
   try {
@@ -73,7 +77,7 @@ async function deleteTicket(id) {
   }
 }
 
-// ⭐ 新增：提交评价函数
+// 评价
 async function submitEval(id) {
   if (!evalInputs.value[id]) return alert("请填写评价内容")
   
@@ -85,8 +89,8 @@ async function submitEval(id) {
     }, {
       headers: { Authorization: `Token ${auth.token}` }
     })
-    alert("评价成功！")
-    ticketStore.fetchTickets() // 刷新列表
+    alert("评价成功！工单已归档。")
+    ticketStore.fetchTickets()
   } catch (e) {
     alert("评价失败：" + (e.response?.data?.error || "未知错误"))
   }
@@ -105,7 +109,7 @@ function getStatusClass(status) {
 
 function getStatusName(status) {
     const map = {
-        'pending_dispatch': '待派单',
+        'pending_dispatch': '正在处理', // 这里跟后端对应
         'repairing': '维修中',
         'finished': '待评价',
         'closed': '已结单',
@@ -121,27 +125,33 @@ function formatDate(iso) {
 
 <style scoped>
 .page-content { padding: 20px; max-width: 800px; margin: 0 auto; }
-.header-row { display: flex; justify-content: space-between; margin-bottom: 20px; }
+.header-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
 .ticket-list { display: flex; flex-direction: column; gap: 15px; }
-.ticket-card { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); border-left: 4px solid #667eea; }
-.card-header { display: flex; justify-content: space-between; font-weight: bold; margin-bottom: 10px; }
 
-.status-tag { padding: 2px 8px; border-radius: 4px; font-size: 12px; color: white; background: #ccc;}
-.status-tag.pending { background: #f1c40f; }
+.ticket-card { 
+  background: white; padding: 20px; border-radius: 8px; 
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05); border-left: 4px solid #667eea; 
+}
+
+.card-header { display: flex; justify-content: space-between; font-weight: bold; margin-bottom: 10px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
+.status-tag { padding: 4px 10px; border-radius: 20px; font-size: 12px; color: white; background: #ccc;}
+.status-tag.pending { background: #f39c12; } /* 橙色表示正在处理 */
 .status-tag.processing { background: #3498db; }
 .status-tag.completed { background: #2ecc71; }
 .status-tag.closed { background: #95a5a6; }
 
-.card-body p { margin: 5px 0; color: #666; font-size: 14px; }
-.time { font-size: 12px; color: #999; }
-.eval-box { margin-top: 10px; padding: 8px; background: #e8f5e9; color: #2e7d32; border-radius: 4px; font-size: 13px; }
+.card-body p { margin: 5px 0; color: #555; font-size: 14px; }
+.time { font-size: 12px; color: #999; margin-top: 8px; }
+.eval-box { margin-top: 10px; padding: 10px; background: #e8f5e9; color: #2e7d32; border-radius: 4px; font-size: 13px; }
 
-.card-footer { margin-top: 10px; display: flex; justify-content: flex-end; gap: 10px;}
-.btn-primary { padding: 8px 15px; background: #667eea; color: white; border: none; border-radius: 4px; cursor: pointer; }
-.btn-delete { padding: 5px 10px; background: white; border: 1px solid #ff4d4f; color: #ff4d4f; border-radius: 4px; cursor: pointer; }
+.card-footer { margin-top: 15px; display: flex; justify-content: flex-end; }
+.btn-primary { padding: 8px 16px; background: #667eea; color: white; border: none; border-radius: 4px; cursor: pointer; }
+.btn-delete { padding: 6px 12px; background: white; border: 1px solid #ff4d4f; color: #ff4d4f; border-radius: 4px; cursor: pointer; }
+.btn-delete:hover { background: #fff1f0; }
 
-/* 评价输入框样式 */
-.eval-action { display: flex; gap: 5px; }
-.eval-input { padding: 5px; border: 1px solid #ddd; border-radius: 4px; }
-.small { padding: 5px 10px; font-size: 12px; }
+.eval-section { display: flex; gap: 8px; width: 100%; }
+.eval-input { flex: 1; padding: 6px; border: 1px solid #ddd; border-radius: 4px; }
+.small { font-size: 13px; padding: 6px 12px; }
+
+.empty-state { text-align: center; color: #999; margin-top: 50px; }
 </style>

@@ -46,8 +46,8 @@
         </div>
 
         <div class="form-group">
-          <label>故障详细描述</label>
-          <textarea v-model="form.description" rows="4" placeholder="请详细描述故障现象..." required></textarea>
+          <label>故障详细描述 (选填)</label>
+          <textarea v-model="form.description" rows="4" placeholder="如有需要，请详细描述故障现象..."></textarea>
         </div>
 
         <button class="btn-primary" :disabled="loading">

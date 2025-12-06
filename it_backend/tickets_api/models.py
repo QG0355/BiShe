@@ -32,7 +32,8 @@ class Ticket(models.Model):
     PRIORITY_CHOICES = [('低', '低'), ('中', '中'), ('高', '高'), ('紧急', '紧急')]
 
     STATUS_CHOICES = [
-        ('pending_dispatch', '待派单'),  # 默认状态
+        # ⭐ 修改点1：文案改为 "正在处理"
+        ('pending_dispatch', '正在处理'),
         ('repairing', '维修中'),
         ('finished', '维修完成(待评价)'),
         ('closed', '已结单'),
@@ -43,7 +44,8 @@ class Ticket(models.Model):
     category = models.CharField(max_length=50, choices=CATEGORY_CHOICES)
     priority = models.CharField(max_length=10, choices=PRIORITY_CHOICES)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='pending_dispatch')
-    description = models.TextField()
+    description = models.TextField(blank=True, null=True, verbose_name="故障描述")
+
     location = models.CharField(max_length=200, blank=True, null=True)
     contact = models.CharField(max_length=100, blank=True, null=True)
 
