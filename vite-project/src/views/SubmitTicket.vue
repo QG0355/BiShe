@@ -11,7 +11,7 @@
           </div>
           <div class="form-group half">
             <label>故障位置</label>
-            <input v-model="form.location" placeholder="例如：宿舍楼6栋302宿舍" required>
+            <input v-model="form.location" placeholder="例如：教学楼A栋 302室" required>
           </div>
         </div>
 
@@ -46,8 +46,8 @@
         </div>
 
         <div class="form-group">
-          <label>故障详细描述 (选填)</label>
-          <textarea v-model="form.description" rows="4" placeholder="如有需要，请详细描述故障现象..."></textarea>
+          <label>故障详细描述</label>
+          <textarea v-model="form.description" rows="4" placeholder="请详细描述故障现象..."></textarea>
         </div>
 
         <button class="btn-primary" :disabled="loading">
@@ -87,6 +87,7 @@ async function submitTicket() {
       description: form.value.description,
       location: form.value.location,
       contact: form.value.contact
+      // ⚠️ 关键修复：已经彻底删除了 status: '待处理' 这一行
     }, { 
       headers: { Authorization: `Token ${auth.token}` } 
     })

@@ -3,39 +3,37 @@
     <nav class="navbar">
       <div class="nav-brand">
         <i class="fas fa-tools"></i>
-        <span>校园报修服务平台</span>
+        <span>校园报修平台</span>
       </div>
       
-      <div class="nav-menu">
-        <RouterLink to="/dashboard" class="nav-btn">
-          <i class="fas fa-home"></i> 首页(仪表盘)
+      <div class="nav-menu" v-if="authStore.isLoggedIn">
+        <RouterLink to="/" class="nav-btn">
+          <i class="fas fa-plus-circle"></i> 提交报修
         </RouterLink>
-
-        <template v-if="authStore.isLoggedIn">
-          <RouterLink to="/submit" class="nav-btn">
-            <i class="fas fa-plus-circle"></i> 提交报修
-          </RouterLink>
-          <RouterLink to="/tickets" class="nav-btn">
-            <i class="fas fa-ticket-alt"></i> 我的报修
-          </RouterLink>
-          <RouterLink v-if="['teacher','admin'].includes(authStore.currentUser?.role)" to="/oa" class="nav-btn">
-            <i class="fas fa-tasks"></i> OA审批
-          </RouterLink>
-        </template>
+        <RouterLink to="/tickets" class="nav-btn">
+          <i class="fas fa-ticket-alt"></i> 我的报修
+        </RouterLink>
+        <RouterLink v-if="['maintenance', 'repair_admin', 'admin', 'dorm_manager'].includes(authStore.currentUser?.role)" to="/workplace" class="nav-btn">
+          <i class="fas fa-briefcase"></i> 工作台
+        </RouterLink>
       </div>
 
       <div class="nav-user">
         <template v-if="authStore.isLoggedIn">
-          <span id="userInfo">欢迎，{{ authStore.currentUser?.name || '用户' }}</span>
+          <span id="userInfo">
+            <i class="fas fa-user-circle"></i> 
+            欢迎，{{ authStore.currentUser?.name || '用户' }}
+          </span>
           <button class="btn-logout" @click="handleLogout">
             <i class="fas fa-sign-out-alt"></i> 退出
           </button>
         </template>
 
         <template v-else>
-          <RouterLink to="/login" class="btn-login">
-            <i class="fas fa-user"></i> 登录
-          </RouterLink>
+          <div class="guest-actions">
+            <RouterLink to="/login" class="btn-login">登录</RouterLink>
+            <RouterLink to="/register" class="btn-register-nav">注册</RouterLink>
+          </div>
         </template>
       </div>
     </nav>
@@ -60,34 +58,55 @@ function handleLogout() {
 </script>
 
 <style scoped>
-/* ... (保留之前的样式) ... */
-
-/* 新增登录按钮样式 */
-.btn-login {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  padding: 8px 20px;
-  background: #667eea;
-  color: white;
-  border-radius: 6px;
-  text-decoration: none;
-  transition: all 0.3s ease;
-}
-.btn-login:hover {
-  background: #5a6fd6;
-  transform: translateY(-1px);
-}
-
-/* 复用之前的 navbar 样式 (确保你保留了 style.css 或者之前的 scoped style) */
 .main-page-wrapper { min-height: 100vh; background: #f5f7fa; }
-.navbar { background: white; box-shadow: 0 2px 10px rgba(0,0,0,0.1); padding: 0 30px; height: 70px; display: flex; justify-content: space-between; align-items: center; }
-.nav-brand { font-size: 20px; font-weight: bold; color: #333; display: flex; align-items: center; gap: 10px; }
+.navbar { 
+  background: white; 
+  box-shadow: 0 2px 10px rgba(0,0,0,0.05); 
+  padding: 0 20px; 
+  height: 60px; 
+  display: flex; 
+  justify-content: space-between; 
+  align-items: center; 
+  position: sticky; top: 0; z-index: 100;
+}
+
+.nav-brand { font-size: 18px; font-weight: bold; color: #333; display: flex; align-items: center; gap: 8px; }
 .nav-brand i { color: #667eea; }
+
 .nav-menu { display: flex; gap: 10px; }
-.nav-btn { padding: 10px 15px; color: #666; text-decoration: none; border-radius: 5px; display: flex; align-items: center; gap: 5px; }
-.nav-btn:hover, .nav-btn.router-link-active { background: #f0f2f5; color: #667eea; }
-.nav-user { display: flex; align-items: center; gap: 15px; }
-.btn-logout { padding: 5px 10px; border: 1px solid #ddd; background: white; border-radius: 4px; cursor: pointer; }
-.main-content { padding: 30px; }
+.nav-btn { 
+  padding: 8px 12px; color: #666; text-decoration: none; border-radius: 5px; 
+  display: flex; align-items: center; gap: 5px; font-size: 14px;
+}
+.nav-btn:hover, .nav-btn.router-link-active { background: #f0f2f5; color: #667eea; font-weight: 500; }
+
+.nav-user { display: flex; align-items: center; gap: 15px; font-size: 14px; }
+.guest-actions { display: flex; gap: 10px; }
+
+.btn-login { color: #666; text-decoration: none; font-weight: 500; }
+.btn-register-nav { 
+  background: #667eea; color: white; padding: 6px 15px; border-radius: 20px; 
+  text-decoration: none; font-size: 13px; 
+}
+.btn-logout { 
+  padding: 4px 8px; border: 1px solid #ddd; background: white; 
+  border-radius: 4px; cursor: pointer; font-size: 12px; color: #666; 
+}
+
+/* --- 📱 手机端适配魔法 (Media Queries) --- */
+@media (max-width: 768px) {
+  .navbar { padding: 0 15px; }
+  .nav-brand span { display: none; /* 手机上隐藏文字只留图标，省空间 */ }
+  #userInfo { display: none; /* 手机上隐藏"欢迎xxx"，太长了 */ }
+  
+  .nav-menu { 
+    position: fixed; bottom: 0; left: 0; width: 100%; 
+    background: white; border-top: 1px solid #eee; 
+    justify-content: space-around; padding: 10px 0;
+    box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
+  }
+  .nav-btn { flex-direction: column; font-size: 12px; gap: 2px; }
+  
+  .main-content { padding-bottom: 70px; /* 防止内容被底部菜单挡住 */ }
+}
 </style>

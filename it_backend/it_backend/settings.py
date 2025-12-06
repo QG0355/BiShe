@@ -83,8 +83,8 @@ WSGI_APPLICATION = 'it_backend.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'cs',  # 比如 'it_helpdesk'
-        'USER': 'root',  # 比如 'root'
+        'NAME': 'BiShe',
+        'USER': 'root',
         'PASSWORD': '123456',
         'HOST': 'localhost',  # 或你的数据库服务器地址
         'PORT': '3306',

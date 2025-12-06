@@ -12,18 +12,16 @@ const routes = [
   { 
     path: '/', 
     component: () => import('@/layouts/MainLayout.vue'),
-    meta: { requiresAuth: true },
+    // 这里不再强制要求登录 (meta: { requiresAuth: true } 删掉)
+    // 因为未登录用户也要能看到首页(虽然不能提交)
     children: [
-      { path: '', redirect: 'dashboard' }, // 默认跳到 dashboard
-      { path: 'dashboard', component: () => import('@/views/Dashboard.vue') },
-      { path: 'submit', component: () => import('@/views/SubmitTicket.vue') },
-      { path: 'tickets', component: () => import('@/views/MyTickets.vue') },
-      { path: 'oa', component: () => import('@/views/OAApproval.vue') },
       { 
-        path: 'admin', 
-        component: () => import('@/views/AdminDashboard.vue'), 
-        meta: { requiresAdmin: true } 
-      }
+        path: '', // 空路径表示首页 "/"
+        component: () => import('@/views/SubmitTicket.vue') 
+      },
+      { path: 'tickets', component: () => import('@/views/MyTickets.vue'), meta: { requiresAuth: true } },
+      { path: 'workplace', component: () => import('@/views/Workplace.vue'), meta: { requiresAuth: true } },
+      // admin 路由...
     ]
   }
 ]
