@@ -3,15 +3,14 @@ from rest_framework.authtoken.models import Token
 from rest_framework.response import Response
 from rest_framework import generics, viewsets, status
 from rest_framework.permissions import AllowAny, IsAuthenticated
-from rest_framework.decorators import api_view, permission_classes
-
-from .models import CustomUser, Ticket, OARequest
-from .serializers import UserSerializer, RegisterSerializer, TicketSerializer, OARequestSerializer
-
-from rest_framework.decorators import action
+from rest_framework.decorators import api_view, permission_classes, action
 from django.db.models import Q
 
-# 1. 登录
+from .models import CustomUser, Ticket
+from .serializers import UserSerializer, RegisterSerializer, TicketSerializer
+
+
+# 1. Login View
 class CustomAuthToken(ObtainAuthToken):
     def post(self, request, *args, **kwargs):
         serializer = self.serializer_class(data=request.data, context={'request': request})
@@ -21,186 +20,80 @@ class CustomAuthToken(ObtainAuthToken):
         return Response({'token': token.key, 'user': UserSerializer(user).data})
 
 
-# 2. 注册
+# 2. Register View
 class RegisterView(generics.CreateAPIView):
     queryset = CustomUser.objects.all()
     serializer_class = RegisterSerializer
     permission_classes = [AllowAny]
 
 
-# 3. 身份绑定 API
+# 3. Identity Bind View (Kept to prevent 404s from frontend, though logic is simplified)
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def bind_identity(request):
     user = request.user
     if user.is_identity_bound:
-        return Response({"detail": "您已经绑定过身份，无法修改！"}, status=400)
+        return Response({"detail": "Identity already bound"}, status=400)
 
-    role = request.data.get('role')
-    identity_id = request.data.get('identity_id')
-    name = request.data.get('name')
-
-    if not all([role, identity_id, name]):
-        return Response({"detail": "请填写完整信息"}, status=400)
-
-    # 更新用户信息
-    user.role = role
-    user.identity_id = identity_id
-    user.name = name
+    user.role = request.data.get('role')
+    user.identity_id = request.data.get('identity_id')
+    user.name = request.data.get('name')
     user.is_identity_bound = True
     user.save()
 
-    return Response({"detail": "绑定成功", "user": UserSerializer(user).data})
+    return Response({"detail": "Bind successful", "user": UserSerializer(user).data})
 
-    def create(self, request, *args, **kwargs):
-        print("前端发来的数据:", request.data)  # 在黑色终端窗口看这个！
-        serializer = self.get_serializer(data=request.data)
-        if not serializer.is_valid():
-            print("校验失败原因:", serializer.errors)  # 重点看这个！
-        return super().create(request, *args, **kwargs)
-# 4. 报修单 API
+
+# 4. Ticket ViewSet
 class TicketViewSet(viewsets.ModelViewSet):
     serializer_class = TicketSerializer
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
         user = self.request.user
-
-        # 1. 学生：只能看自己提交的
-        if user.role == 'student':
-            return Ticket.objects.filter(submitter=user)
-
-        # 2. 宿管：看自己提交的 + 待宿管审核的(pending_dorm)
-        elif user.role == 'dorm_manager':
-            return Ticket.objects.filter(Q(submitter=user) | Q(status='pending_dorm'))
-
-        # 3. 报修管理员：看所有 + 待派单的(pending_dispatch)
-        elif user.role == 'repair_admin' or user.role == 'admin':
+        # Admins and Repair Admins see all tickets
+        if user.role in ['admin', 'repair_admin']:
             return Ticket.objects.all()
-
-        # 4. 维修人员：看自己提交的 + 指派给自己的
-        elif user.role == 'maintenance':
-            return Ticket.objects.filter(Q(submitter=user) | Q(assignee=user))
-
-        # 5. 老师/教学楼管理员：目前只能看自己提交的
-        else:
-            return Ticket.objects.filter(submitter=user)
+        # Maintenance workers see all tickets (simplified logic for internship)
+        if user.role == 'maintenance':
+            return Ticket.objects.all()
+        # Regular users (students/teachers) only see their own tickets
+        return Ticket.objects.filter(submitter=user)
 
     def perform_create(self, serializer):
-        user = self.request.user
-        # 初始状态逻辑：
-        # 如果是学生 -> 状态设为 'pending_dorm' (待宿管审)
-        # 如果是老师/宿管/管理员 -> 状态设为 'pending_dispatch' (直接待派单)
-        initial_status = 'pending_dispatch'
-        if user.role == 'student':
-            initial_status = 'pending_dorm'
+        # Automatically set status to 'pending_dispatch'
+        serializer.save(submitter=self.request.user, status='pending_dispatch')
 
-        serializer.save(submitter=user, status=initial_status)
-
-    # 增加一个动作：处理工单 (审核/派单/完成/评价)
-    # URL: /api/tickets/<id>/handle/
+    # Ticket Handling Action (Assign, Finish, Evaluate)
     @action(detail=True, methods=['post'])
     def handle(self, request, pk=None):
         ticket = self.get_object()
-        user = request.user
-        action_type = request.data.get('type')  # approve, assign, finish, evaluate
+        action_type = request.data.get('type')
 
-        # 1. 宿管审核 (学生提交的单子)
-        if action_type == 'approve_dorm' and user.role == 'dorm_manager':
-            ticket.status = 'pending_dispatch'  # 转给报修管理员
-            ticket.save()
-            return Response({'status': '审核通过，已转交报修管理员'})
-
-        # 2. 报修管理员派单
-        if action_type == 'assign' and user.role in ['repair_admin', 'admin']:
+        # Dispatch (Assign)
+        if action_type == 'assign':
             worker_id = request.data.get('worker_id')
             try:
-                worker = CustomUser.objects.get(pk=worker_id, role='maintenance')
+                worker = CustomUser.objects.get(pk=worker_id)
                 ticket.assignee = worker
                 ticket.status = 'repairing'
                 ticket.save()
-                return Response({'status': f'已指派给 {worker.name}'})
+                return Response({'status': 'Dispatched'})
             except CustomUser.DoesNotExist:
-                return Response({'error': '维修人员不存在'}, status=400)
+                return Response({'error': 'Worker not found'}, status=400)
 
-        # 3. 报修管理员/宿管 驳回 (认为是瞎报修)
-        if action_type == 'reject' and user.role in ['repair_admin', 'admin', 'dorm_manager']:
-            ticket.status = 'rejected'
-            ticket.save()
-            return Response({'status': '已驳回'})
-
-        # 4. 维修人员完成维修
-        if action_type == 'finish' and user.role == 'maintenance':
+        # Finish Repair
+        if action_type == 'finish':
             ticket.status = 'finished'
             ticket.save()
-            return Response({'status': '维修完成，等待学生评价'})
+            return Response({'status': 'Repair Finished'})
 
-        # 5. 学生评价
-        if action_type == 'evaluate' and user == ticket.submitter:
+        # Evaluate
+        if action_type == 'evaluate':
             ticket.evaluation = request.data.get('comment')
             ticket.rating = request.data.get('rating', 5)
             ticket.status = 'closed'
             ticket.save()
-            return Response({'status': '评价成功，工单结束'})
+            return Response({'status': 'Evaluated'})
 
-        return Response({'error': '无权操作或状态不正确'}, status=403)
-
-
-# 5. OA 审批 API
-class OAViewSet(viewsets.ModelViewSet):
-    serializer_class = OARequestSerializer
-    permission_classes = [IsAuthenticated]
-
-    def get_queryset(self):
-        user = self.request.user
-        # 老师看待老师审批的，管理员看待管理员审批的，学生看自己的
-        if user.role == 'admin':
-            return OARequest.objects.filter(status='pending_admin')
-        elif user.role == 'teacher':
-            return OARequest.objects.filter(status='pending_teacher')
-        else:
-            return OARequest.objects.filter(requester=user)
-
-    def perform_create(self, serializer):
-        serializer.save(requester=self.request.user)
-
-
-# 6. OA 审批动作 (同意/拒绝)
-@api_view(['POST'])
-@permission_classes([IsAuthenticated])
-def review_oa(request, pk):
-    try:
-        oa = OARequest.objects.get(pk=pk)
-    except OARequest.DoesNotExist:
-        return Response(status=404)
-
-    action = request.data.get('action')  # 'approve' or 'reject'
-    user = request.user
-
-    if action == 'reject':
-        oa.status = 'rejected'
-        oa.save()
-        return Response({"detail": "已拒绝"})
-
-    if action == 'approve':
-        if user.role == 'teacher' and oa.status == 'pending_teacher':
-            oa.status = 'pending_admin'  # 转交管理员
-            oa.save()
-            return Response({"detail": "已同意，转交管理员审批"})
-
-        elif user.role == 'admin' and oa.status == 'pending_admin':
-            oa.status = 'approved'
-            oa.save()
-
-            # 关键：给申请人添加权限
-            requester = oa.requester
-            # 这里的逻辑是把申请的区域加到 extra_permissions 列表里
-            perms = requester.extra_permissions
-            if oa.target_area not in perms:
-                perms.append(oa.target_area)
-                requester.extra_permissions = perms
-                requester.save()
-
-            return Response({"detail": "审批通过，权限已开通"})
-
-    return Response({"detail": "无权操作"}, status=403)
+        return Response({'error': 'Unknown action'}, status=400)

@@ -1,41 +1,45 @@
 from rest_framework import serializers
-from .models import CustomUser, Ticket, OARequest
+from .models import CustomUser, Ticket
+
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = CustomUser
-        fields = ['id', 'username', 'name', 'role', 'identity_id', 'is_identity_bound', 'extra_permissions']
+        fields = ['id', 'username', 'name', 'role', 'identity_id', 'is_identity_bound']
+
 
 class RegisterSerializer(serializers.ModelSerializer):
-    # 注册只需要这三个字段
+    name = serializers.CharField(required=True)
+    role = serializers.CharField(required=True)
+    identity_id = serializers.CharField(required=True)
+
     class Meta:
         model = CustomUser
-        fields = ['username', 'password']
+        fields = ['username', 'password', 'name', 'role', 'identity_id']
         extra_kwargs = {'password': {'write_only': True}}
 
     def create(self, validated_data):
-        # 创建一个“空白”用户：没有名字，没有角色，没有身份ID，未绑定
+        # 自动识别超管
+        is_staff = validated_data['role'] == 'admin'
+        is_superuser = validated_data['role'] == 'admin'
+
         user = CustomUser.objects.create_user(
             username=validated_data['username'],
             password=validated_data['password'],
-            name='',             # 暂时为空
-            role='student',      # 默认先给个学生角色，绑定时再改
-            identity_id=None,    # 暂时为空
-            is_identity_bound=False # 关键！标记为未绑定
+            name=validated_data['name'],
+            role=validated_data['role'],
+            identity_id=validated_data['identity_id'],
+            is_identity_bound=True,
+            is_staff=is_staff,
+            is_superuser=is_superuser
         )
         return user
 
+
 class TicketSerializer(serializers.ModelSerializer):
     submitter_name = serializers.ReadOnlyField(source='submitter.name')
+
     class Meta:
         model = Ticket
         fields = '__all__'
         read_only_fields = ['submitter', 'status', 'submitTime', 'updateTime']
-
-class OARequestSerializer(serializers.ModelSerializer):
-    requester_name = serializers.ReadOnlyField(source='requester.name')
-    requester_role = serializers.ReadOnlyField(source='requester.role')
-    class Meta:
-        model = OARequest
-        fields = '__all__'
-        read_only_fields = ['requester', 'status', 'created_at']
