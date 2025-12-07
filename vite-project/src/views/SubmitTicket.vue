@@ -78,6 +78,17 @@ const form = ref({
 })
 
 async function submitTicket() {
+  if (!auth.isLoggedIn) {
+    alert("请先登录！")
+    router.push('/login')
+    return
+  }
+
+  // 2. 检查身份 (虽然现在的注册流程保证了肯定有身份，但加个保险)
+  if (!auth.currentUser?.role) {
+    alert("您的账号信息不完整，无法报修，请联系管理员。")
+    return
+  }
   loading.value = true
   try {
     await axios.post('http://127.0.0.1:8000/api/tickets/', {
