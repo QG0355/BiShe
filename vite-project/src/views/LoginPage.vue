@@ -64,7 +64,17 @@ async function handleLogin() {
   loading.value = false
   
   if (result.success) {
-    router.push('/')
+    // 1. 先获取当前用户的角色
+    const role = authStore.currentUser?.role
+
+    // 2. 判断角色进行分流
+    if (['maintenance', 'repair_admin', 'admin'].includes(role)) {
+      // 如果是维修员或管理员 -> 直接去工作台
+      router.push('/workplace')
+    } else {
+      // 如果是学生 -> 去首页
+      router.push('/')
+    }
   } else {
     error.value = result.message 
   }

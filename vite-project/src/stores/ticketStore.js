@@ -36,7 +36,30 @@ export const useTicketStore = defineStore('ticket', {
         this.loading = false
       }
     },
+      async fetchTickets(search = '') {
+      const authStore = useAuthStore()
+      
+      if (!authStore.token) return 
 
+      this.loading = true
+      try {
+        const response = await axios.get(`${API_URL}/tickets/`, {
+          headers: { 
+            Authorization: `Token ${authStore.token}` 
+          },
+          // 2. 👇 新增这个 params 配置，Axios 会自动拼接到 URL 后面
+          params: {
+            search: search
+          }
+        })
+        
+        this.tickets = response.data
+      } catch (error) {
+        console.error('获取报修单失败:', error)
+      } finally {
+        this.loading = false
+      }
+    },
     // 2. 提交新报修单
     async createTicket(ticketData) {
       const authStore = useAuthStore()

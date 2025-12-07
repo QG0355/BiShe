@@ -7,6 +7,7 @@ from rest_framework.decorators import api_view, permission_classes, action
 from django.db.models import Q
 from django.shortcuts import render, redirect, get_object_or_404
 from .models import Order
+from rest_framework import filters
 
 from .models import CustomUser, Ticket
 from .serializers import UserSerializer, RegisterSerializer, TicketSerializer
@@ -50,7 +51,8 @@ def bind_identity(request):
 class TicketViewSet(viewsets.ModelViewSet):
     serializer_class = TicketSerializer
     permission_classes = [IsAuthenticated]
-
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['title', 'description', 'location', 'id']
     def get_queryset(self):
         user = self.request.user
         # Admins and Repair Admins see all tickets

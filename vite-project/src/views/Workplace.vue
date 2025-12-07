@@ -5,6 +5,15 @@
       <p>欢迎回来，{{ auth.currentUser?.name || auth.currentUser?.username }}</p>
     </div>
 
+    <div class="search-box">
+      <input 
+        v-model="searchText" 
+        type="text" 
+        placeholder="🔍 搜索工单..." 
+        @keyup.enter="fetchData"
+      >
+      <button @click="fetchData" class="btn-search">搜索</button>
+    </div>
     <div class="section">
       <h3 class="section-title">📢 待接单大厅 (抢单池)</h3>
       
@@ -59,6 +68,7 @@ import { useAuthStore } from '@/stores/auth'
 
 const auth = useAuthStore()
 const allTickets = ref([])
+const searchText = ref('') // 1. 新增搜索变量
 
 // 计算属性：筛选出“待接单”的列表
 const pendingTickets = computed(() => {
@@ -66,7 +76,6 @@ const pendingTickets = computed(() => {
 })
 
 // 计算属性：筛选出“我正在修”的列表
-// 注意：这里我们假设 status='repairing' 且 assignee 是我自己
 const myRepairingTickets = computed(() => {
   return allTickets.value.filter(t => 
     t.status === 'repairing' && t.assignee === auth.currentUser?.id
@@ -77,11 +86,17 @@ onMounted(async () => {
   fetchData()
 })
 
+// 2. 修改 fetchData 支持搜索参数
 async function fetchData() {
-  const res = await axios.get('http://127.0.0.1:8000/api/tickets/', {
-     headers: { Authorization: `Token ${auth.token}` }
-  })
-  allTickets.value = res.data
+  try {
+    const res = await axios.get('http://127.0.0.1:8000/api/tickets/', {
+       headers: { Authorization: `Token ${auth.token}` },
+       params: { search: searchText.value } // 把搜索词传给后端
+    })
+    allTickets.value = res.data
+  } catch (e) {
+    console.error("加载失败", e)
+  }
 }
 
 // 核心功能：接单
@@ -89,10 +104,9 @@ async function takeOrder(ticketId) {
   if(!confirm("确定要接这个单子吗？")) return;
   
   try {
-    // 这里的 type='assign' 和 worker_id 是对应你后端 views.py 的 handle 逻辑
     await axios.post(`http://127.0.0.1:8000/api/tickets/${ticketId}/handle/`, {
       type: 'assign',
-      worker_id: auth.currentUser.id // 把自己指派给这个单子
+      worker_id: auth.currentUser.id 
     }, { 
       headers: { Authorization: `Token ${auth.token}` } 
     })
@@ -132,6 +146,36 @@ function formatDate(iso) {
 .page-header { margin-bottom: 30px; }
 .section { margin-bottom: 40px; }
 .section-title { font-size: 18px; border-left: 5px solid #667eea; padding-left: 10px; margin-bottom: 20px; color: #333; }
+
+/* 👇👇👇 新增的搜索框样式 👇👇👇 */
+.search-box {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 30px;
+  max-width: 600px; /* 限制搜索框最大宽度 */
+}
+
+.search-box input {
+  flex: 1; 
+  padding: 10px 15px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.btn-search {
+  padding: 0 25px;
+  background: #667eea;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: bold;
+}
+.btn-search:hover {
+  background: #5a6fd6;
+}
+/* 👆👆👆 新增样式结束 👆👆👆 */
 
 .task-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 20px; }
 .empty-box { background: #f9f9f9; padding: 20px; text-align: center; color: #999; border-radius: 8px; }

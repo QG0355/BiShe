@@ -9,6 +9,15 @@
       </button>
     </div>
 
+    <div class="search-box">
+      <input 
+        v-model="searchText" 
+        type="text" 
+        placeholder="🔍 搜索标题、位置或单号..." 
+        @keyup.enter="doSearch"
+      >
+      <button @click="doSearch" class="btn-search">搜索</button>
+    </div>
     <div v-if="ticketStore.tickets.length === 0" class="empty-state">
       <div class="empty-icon"><i class="fas fa-inbox"></i></div>
       <p>暂无相关记录</p>
@@ -40,17 +49,25 @@
 </template>
 
 <script setup>
-import { onMounted } from 'vue'
+import { onMounted, ref } from 'vue' // 1. 引入 ref
 import { useTicketStore } from '@/stores/ticketStore'
-import { useAuthStore } from '@/stores/auth' // 1. 必须引入这个
+import { useAuthStore } from '@/stores/auth'
 import axios from 'axios'
 
 const ticketStore = useTicketStore()
-const auth = useAuthStore() // 2. 必须定义这个，否则页面找不到 auth 就会报错
+const auth = useAuthStore()
+
+// 2. 定义搜索变量
+const searchText = ref('')
+
+// 3. 定义搜索函数
+function doSearch() {
+  ticketStore.fetchTickets(searchText.value)
+}
 
 onMounted(() => {
   if (auth.isLoggedIn) {
-    ticketStore.fetchTickets()
+    ticketStore.fetchTickets() // 默认加载全部
   }
 })
 
@@ -62,7 +79,8 @@ async function deleteTicket(id) {
       headers: { Authorization: `Token ${auth.token}` }
     })
     alert("已撤销")
-    ticketStore.fetchTickets()
+    // 撤销后重新刷新列表，保留当前的搜索条件
+    ticketStore.fetchTickets(searchText.value)
   } catch (e) {
     alert("撤销失败")
   }
@@ -80,7 +98,7 @@ function getStatusClass(status) {
   return map[status] || ''
 }
 
-// 状态文字映射 (已去掉评价相关逻辑)
+// 状态文字映射
 function getStatusName(status) {
     const map = {
         'pending_dispatch': '正在处理',
@@ -112,6 +130,35 @@ function formatDate(iso) {
   border-bottom: 2px solid #f0f2f5;
   padding-bottom: 15px;
 }
+
+/* 👇👇👇 新增的搜索框样式 👇👇👇 */
+.search-box {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.search-box input {
+  flex: 1; 
+  padding: 10px 15px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 14px;
+}
+
+.btn-search {
+  padding: 0 25px;
+  background: #667eea;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: bold;
+}
+.btn-search:hover {
+  background: #5a6fd6;
+}
+/* 👆👆👆 新增样式结束 👆👆👆 */
 
 .ticket-grid {
   display: grid;

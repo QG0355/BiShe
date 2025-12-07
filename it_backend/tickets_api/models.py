@@ -35,6 +35,7 @@ class Ticket(models.Model):
         # ⭐ 修改点1：文案改为 "正在处理"
         ('pending_dispatch', '正在处理'),
         ('repairing', '维修中'),
+        ('finished', '维修完成'),
         ('closed', '已结单'),
         ('rejected', '已驳回')
     ]
