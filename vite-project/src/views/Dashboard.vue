@@ -19,26 +19,51 @@
         </div>
 
         <div v-else class="user-btns">
-          <button @click="goToSubmit" class="btn-primary">
-            <i class="fas fa-wrench"></i> 我要报修
+         <button @click="handleMainBtnClick" class="btn-primary" >
+        <i :class="isStudent ? 'fas fa-wrench' : 'fas fa-briefcase'"></i> 
+          {{ isStudent ? '我要报修' : '进入工作台' }}
           </button>
-          <button @click="$router.push('/tickets')" class="btn-outline">
-            <i class="fas fa-list"></i> 查看记录
-          </button>
-        </div>
+
+        <button @click="$router.push('/tickets')" class="btn-outline">
+         <i class="fas fa-list"></i> 查看记录
+      </button>
+      </div>
       </div>
     </div>
   </div>
 </template>
-
 <script setup>
 import { useAuthStore } from '@/stores/auth'
 import { useRouter } from 'vue-router'
+// 👇 1. 记得在这里加上 computed
+import { computed } from 'vue'
 
 const authStore = useAuthStore()
 const router = useRouter()
 
-// 点击“我要报修”时的逻辑
+// 👇 2. 这里是新增的代码开始 ==============================
+
+// 定义一个简单的判断：当前登录的是不是学生？
+const isStudent = computed(() => {
+  // 如果 role 是 'student'，返回 true；否则返回 false
+  return authStore.currentUser?.role === 'student'
+})
+
+// 统一的按钮点击处理函数
+function handleMainBtnClick() {
+  if (isStudent.value) {
+    // 如果是学生 -> 走原来的报修逻辑
+    goToSubmit() 
+  } else {
+    // 如果是维修员/管理员 -> 直接去工作台
+    router.push('/workplace')
+  }
+}
+
+// 👆 新增的代码结束 ======================================
+
+
+// 👇 3. 原来的函数保留不动，但在上面会被 handleMainBtnClick 调用
 function goToSubmit() {
   // 检查是否绑定了身份
   if (!authStore.currentUser?.is_identity_bound) {
@@ -52,7 +77,6 @@ function goToSubmit() {
   }
 }
 </script>
-
 <style scoped>
 .welcome-container {
   display: flex;
