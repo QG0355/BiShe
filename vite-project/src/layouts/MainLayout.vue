@@ -22,7 +22,7 @@
         <template v-if="authStore.isLoggedIn">
           <span id="userInfo">
             <i class="fas fa-user-circle"></i> 
-            欢迎，{{ authStore.currentUser?.name || '用户' }}
+            欢迎，{{ authStore.currentUser?.name || authStore.currentUser?.username || '用户' }}
           </span>
           <button class="btn-logout" @click="handleLogout">
             <i class="fas fa-sign-out-alt"></i> 退出

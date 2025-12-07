@@ -79,14 +79,15 @@ const form = ref({
 
 async function submitTicket() {
   if (!auth.isLoggedIn) {
-    alert("请先登录！")
-    router.push('/login')
+    if(confirm("请先登录才能提交报修！\n是否去登录？")) {
+        router.push('/login')
+    }
     return
   }
-
-  // 2. 检查身份 (虽然现在的注册流程保证了肯定有身份，但加个保险)
-  if (!auth.currentUser?.role) {
-    alert("您的账号信息不完整，无法报修，请联系管理员。")
+  if (!auth.currentUser?.is_identity_bound) {
+    if(confirm("您是新用户，请先绑定身份信息（学号/工号）才能报修。\n是否现在去绑定？")) {
+        router.push('/bind')
+    }
     return
   }
   loading.value = true

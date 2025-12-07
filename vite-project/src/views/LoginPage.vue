@@ -68,7 +68,7 @@ async function handleLogin() {
   
   // 2. 判断结果
   if (result.success) {
-    router.push('/dashboard')
+    router.push('/')
   } else {
     // 3. 【关键】直接显示后端返回的详细错误！
     // 比如："Unable to log in with provided credentials." 或者 "账号不存在"

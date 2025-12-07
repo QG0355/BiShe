@@ -31,7 +31,7 @@ class RegisterSerializer(serializers.ModelSerializer):
             name=validated_data.get('name', ''),
             role=role,
             identity_id=identity_id,
-            is_identity_bound=True,  # 注册即绑定，防止前端逻辑死循环
+            is_identity_bound=False, # 注册即绑定，防止前端逻辑死循环
             is_staff=is_staff,
             is_superuser=is_superuser
         )
