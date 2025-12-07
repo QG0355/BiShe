@@ -90,13 +90,6 @@ class TicketViewSet(viewsets.ModelViewSet):
             ticket.save()
             return Response({'status': 'Repair Finished'})
 
-        # Evaluate
-        if action_type == 'evaluate':
-            ticket.evaluation = request.data.get('comment')
-            ticket.rating = request.data.get('rating', 5)
-            ticket.status = 'closed'
-            ticket.save()
-            return Response({'status': 'Evaluated'})
 
         return Response({'error': 'Unknown action'}, status=400)
 

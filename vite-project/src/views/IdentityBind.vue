@@ -12,10 +12,8 @@
         <div class="form-group">
           <label>我是：</label>
           <select v-model="form.role" required>
-            <option value="student">在校学生</option>
-            <option value="teacher">教职工</option>
-            <option value="dorm_manager">宿管人员</option>
-            <option value="maintenance">维修人员</option>
+          <option value="student">在校学生 (我是来报修的)</option>
+          <option value="maintenance">维修人员 (我是来修东西的)</option>
           </select>
         </div>
         <div class="form-group">

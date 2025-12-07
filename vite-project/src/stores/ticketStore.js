@@ -1,22 +1,34 @@
+// src/stores/ticketStore.js
 import { defineStore } from 'pinia'
 import axios from 'axios'
+import { useAuthStore } from './auth' // 引入 auth 仓库，用来拿 Token
 
-const API_URL = 'http://127.0.0.1:8000/api' // 你的 Django 后端地址
+const API_URL = 'http://127.0.0.1:8000/api'
 
 export const useTicketStore = defineStore('ticket', {
   state: () => ({
-    tickets: [], // 替换全局变量 tickets
-    currentTicket: null, // 用于详情页
+    tickets: [], // 存放报修单列表
     loading: false
   }),
   
   actions: {
-    // 1. 获取所有报修单 (对应 loadMyTickets / loadAdminDashboard)
+    // 1. 获取报修单列表
     async fetchTickets() {
+      const authStore = useAuthStore() // 获取当前登录用户信息
+      
+      // 如果没登录，直接不发请求，防止报错
+      if (!authStore.token) return 
+
       this.loading = true
       try {
-        // 假设 Django 的 API 地址是 /api/tickets/
-        const response = await axios.get(`${API_URL}/tickets/`) 
+        // ⭐ 重点：发送请求时，手动把 Token 带在 headers 里
+        // 这样后端 request.user 才能识别出你是谁
+        const response = await axios.get(`${API_URL}/tickets/`, {
+          headers: { 
+            Authorization: `Token ${authStore.token}` 
+          }
+        })
+        
         this.tickets = response.data
       } catch (error) {
         console.error('获取报修单失败:', error)
@@ -25,37 +37,22 @@ export const useTicketStore = defineStore('ticket', {
       }
     },
 
-    // 2. 提交新报修单 (对应 handleTicketSubmit)
+    // 2. 提交新报修单
     async createTicket(ticketData) {
+      const authStore = useAuthStore()
       try {
-        // ticketData 是一个对象，包含 title, category, description 等
-        const response = await axios.post(`${API_URL}/tickets/`, ticketData)
-        
-        // 成功后，把新工单添加到 state 列表的开头
-        this.tickets.unshift(response.data)
-        return true // 返回成功
+        // 发送 POST 请求
+        await axios.post(`${API_URL}/tickets/`, ticketData, {
+          headers: { Authorization: `Token ${authStore.token}` }
+        })
+        // 提交成功后，重新获取一下最新列表
+        this.fetchTickets()
+        return true
       } catch (error) {
         console.error('提交失败:', error)
-        return false // 返回失败
-      }
-    },
-    
-    // 3. 更新报修单状态 (对应 updateTicketStatus)
-    async updateTicketStatus(ticketId, newStatus) {
-      try {
-        // Django REST Framework 通常使用 PATCH 来局部更新
-        const response = await axios.patch(`${API_URL}/tickets/${ticketId}/`, { status: newStatus })
-        
-        // 更新本地 state 列表中的数据
-        const index = this.tickets.findIndex(t => t.id === ticketId)
-        if (index !== -1) {
-          this.tickets[index] = response.data
-        }
-      } catch (error) {
-        console.error('更新状态失败:', error)
+        alert("提交失败：" + JSON.stringify(error.response?.data))
+        return false
       }
     }
-    
-    // 你还可以添加 fetchTicketById (获取单个详情), addComment 等 actions
   }
 })

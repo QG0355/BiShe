@@ -48,10 +48,8 @@ import { ref } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useRouter } from 'vue-router'
 
-// 1. 【关键修改】默认值改为空字符串，不再自动填充
 const username = ref('')
 const password = ref('')
-
 const loading = ref(false)
 const error = ref(null)
 const authStore = useAuthStore()
@@ -61,54 +59,39 @@ async function handleLogin() {
   loading.value = true
   error.value = null
   
-  // 1. 调用 Pinia 的登录，并接收返回值 (现在它返回的是一个对象)
   const result = await authStore.login(username.value, password.value)
   
   loading.value = false
   
-  // 2. 判断结果
   if (result.success) {
     router.push('/')
   } else {
-    // 3. 【关键】直接显示后端返回的详细错误！
-    // 比如："Unable to log in with provided credentials." 或者 "账号不存在"
     error.value = result.message 
   }
 }
 </script>
 
 <style scoped>
-/* --- 全新设计的 UI --- */
-
 .login-container {
   min-height: 100vh;
-  /* 背景图：深蓝科技感背景 */
-  background-image: url('https://images.unsplash.com/photo-1518770660439-4636190af475?q=80&w=2070&auto=format&fit=crop');
-  background-size: cover;
-  background-position: center;
+  /* ⭐ 核心修改：使用 CSS 线性渐变作为背景 */
+  /* 左上角 #1e3c72 (深蓝)，右下角 #2a5298 (稍亮的蓝) */
+  background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+  
   display: flex;
   align-items: center;
   justify-content: center;
-  position: relative;
-}
-
-/* 加一层半透明深色遮罩，让文字更清晰 */
-.login-container::before {
-  content: '';
-  position: absolute;
-  top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(15, 23, 42, 0.75); /* 深邃的蓝黑色遮罩 */
-  backdrop-filter: blur(3px);
+  /* 之前的 position: relative 和伪元素遮罩都不需要了，因为没有图片要遮 */
 }
 
 .login-box {
-  position: relative; /* 确保在遮罩之上 */
   width: 100%;
   max-width: 420px;
-  background: rgba(255, 255, 255, 0.95); /* 几乎不透明的白色卡片 */
+  background: rgba(255, 255, 255, 0.95);
   border-radius: 16px;
   padding: 40px;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); /* 更有质感的阴影 */
+  /* 给盒子加一点深色阴影，让它在渐变背景上浮起来 */
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2); 
   animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -181,7 +164,7 @@ async function handleLogin() {
 
 .input-wrapper input {
   width: 100%;
-  padding: 14px 16px 14px 48px; /* 留出图标位置 */
+  padding: 14px 16px 14px 48px;
   border: 2px solid #e2e8f0;
   border-radius: 10px;
   font-size: 15px;
@@ -191,7 +174,6 @@ async function handleLogin() {
   box-sizing: border-box;
 }
 
-/* 输入框聚焦时的效果 */
 .input-wrapper input:focus {
   border-color: #3b82f6;
   background: white;
@@ -200,7 +182,7 @@ async function handleLogin() {
 }
 
 .input-wrapper input:focus + i {
-  color: #3b82f6; /* 图标变色 */
+  color: #3b82f6;
 }
 
 .btn-login {
